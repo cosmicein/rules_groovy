@@ -38,27 +38,18 @@ def _groovy_jar_impl(ctx):
             break
 
     # Compile all files in srcs with groovyc
-    cmd += "$GROOVY_HOME/bin/groovyc %s -d %s %s\n" % (
-        "-cp " + ":".join([dep.path for dep in all_deps.to_list()]) if len(all_deps.to_list()) != 0 else "",
+    cmd += "$GROOVY_HOME/bin/groovyc"
+    cmd += " -cp '" + cmd_helper.join_paths(ctx.configuration.host_path_separator, all_deps) + "'"
+    cmd += " -d %s %s\n" % (
         build_output,
         " ".join([src.path for src in ctx.files.srcs]),
     )
 
-    # Discover all of the generated class files and write their paths to a file.
-    # Run the paths through sed to trim out everything before the package root so
-    # that the paths match how they should look in the jar file.
-    cmd += "find %s -name '*.class' | sed 's:^%s/::' > %s/class_list\n" % (
-        build_output,
-        build_output,
-        build_output,
-    )
-
     # Create a jar file using the discovered paths
     cmd += "root=`pwd`\n"
-    cmd += "cd %s; $root/%s Cc ../%s @class_list\n" % (
-        build_output,
-        ctx.executable._zipper.path,
-        class_jar.basename,
+    cmd += "cd %s \n" %(build_output)
+    cmd += "$root/$JAVA_HOME/bin/jar cf $root/%s .\n" % (
+        class_jar.path,
     )
     cmd += "cd $root\n"
 
